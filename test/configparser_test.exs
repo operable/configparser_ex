@@ -9,18 +9,6 @@ defmodule ConfigParserTest do
     check_string("", {:ok, %{}})
   end
 
-  test "parses an comment only file" do
-    check_string("#this is a useless file\n", {:ok, %{}})
-  end
-
-  test "parses comments and empty lines" do
-    check_string("""
-      #this is a useless file
-
-        # filled with comments and empty lines
-      """, {:ok, %{}} )
-  end
-
   test "parses a single section" do
     check_string("[section]\n", {:ok, %{"section" => %{}}} )
   end
@@ -34,7 +22,8 @@ defmodule ConfigParserTest do
       [section]
       # this is an interesting key value pair
       key = value
-      """, {:ok, %{"section" => %{"key" => "value"}}} )
+      """, {:ok, %{"section" => %{"key" => "value",
+                                  "# this is an interesting key value pair" => nil}}} )
   end
 
   test "allows spaces in the keys" do
@@ -42,7 +31,8 @@ defmodule ConfigParserTest do
       [section]
       # this is an interesting key value pair
       spaces in keys=allowed
-      """, {:ok, %{"section" => %{"spaces in keys" => "allowed"}}} )
+      """, {:ok, %{"section" => %{"spaces in keys" => "allowed",
+                                  "# this is an interesting key value pair" => nil}}} )
   end
 
   test "allows spaces in the values" do
@@ -50,23 +40,8 @@ defmodule ConfigParserTest do
       [section]
       # this is an interesting key value pair
       spaces in values=allowed as well
-      """, {:ok, %{"section" => %{"spaces in values" => "allowed as well"}}} )
-  end
-
-  test "allows spaces around the delimiter" do
-    check_string("""
-      [section]
-      # this is an interesting key value pair
-      spaces around the delimiter = obviously
-      """, {:ok, %{"section" => %{"spaces around the delimiter" => "obviously"}}} )
-  end
-
-  test "allows a colon as the delimiter" do
-    check_string("""
-      [section]
-      # this is an interesting key value pair
-      you can also use : to delimit keys from values
-      """, {:ok, %{"section" => %{"you can also use" => "to delimit keys from values"}}} )
+      """, {:ok, %{"section" => %{"spaces in values" => "allowed as well",
+                                  "# this is an interesting key value pair" => nil}}} )
   end
 
   test "allows a continuation line" do
@@ -105,7 +80,8 @@ defmodule ConfigParserTest do
       [section]
       # this is an interesting key value pair
       key = value ; With a comment
-      """, {:ok, %{"section" => %{"key" => "value"}}} )
+      """, {:ok, %{"section" => %{"key" => "value ; With a comment",
+                                  "# this is an interesting key value pair" => nil}}} )
   end
 
   test "extracts a list of sections from parsed config data" do
@@ -241,7 +217,7 @@ defmodule ConfigParserTest do
       key_without_value
       empty string value here =
 
-      [You can use comments]
+      [You cannot use comments]
       # like this
       ; or this
 
@@ -270,12 +246,18 @@ defmodule ConfigParserTest do
    "Sections Can Be Indented" => %{"can_values_be_as_well" => "True",
      "does_that_mean_anything_special" => "False",
      "multiline_values" => "are handled just fine as long as they are indented deeper than the first line of a value",
-     "purpose" => "formatting for readability"},
+     "purpose" => "formatting for readability",
+     "# Did I mention we can indent comments, too?" => nil},
    "Simple Values" => %{"key" => "value",
      "spaces around the delimiter" => "obviously",
      "spaces in keys" => "allowed", "spaces in values" => "allowed as well",
      "you can also use" => "to delimit keys from values"},
-   "You can use comments" => %{}}} )
+   "You cannot use comments" => %{"# That being said, this can be customized." => nil,
+     "# from using the delimiting characters as parts of values." => nil,
+     "# like this" => nil,
+     "; or this" => nil,
+     "# By default only in an empty line." => nil,
+     "# Inline comments can be harmful because they prevent users" => nil}}} )
 
   end
 end

@@ -204,8 +204,6 @@ defmodule ConfigParser do
 
   # Parse a line while the parse state indicates we're in a good state
   defp parse_line(line, parse_state = %ParseState{result: {:ok, _}}) do
-    line = strip_inline_comments(line)
-
     # find out how many whitespace characters are on the front of the line
     indent_level = indent_level(line)
 
@@ -217,9 +215,9 @@ defmodule ConfigParser do
       %{ParseState.append_continuation(parse_state, String.strip(line)) | line_number: parse_state.line_number + 1, continuation?: true}
     else
       cond do
-        # if we can skip this line (it's empty or a comment) then simply advance the line number
-        # and note that the next line can't be a continuation
-        can_skip_line(line) ->
+        # if this line is empty then simply advance the line number and note
+        # that the next line can't be a continuation
+        is_empty(line) ->
           %{parse_state | line_number: parse_state.line_number + 1, continuation?: false, last_indent: indent_level}
 
         # match a line that begins a new section like "[new_section]"
@@ -259,29 +257,8 @@ defmodule ConfigParser do
     String.length(spaces)
   end
 
-  # Returns true if the parser can ignore the line passed in.
-  # this is done if the line is a comment just whitespace
-  defp can_skip_line(line) do
-    is_comment(line) || is_empty(line)
-  end
-
-  # Returns true if the line appears to be a comment
-  @hash_comment_regex ~r{#.*}
-  @semicolon_comment_regex ~r{;.*}
-
-  defp is_comment(line) do
-    String.strip(line) =~ @hash_comment_regex || String.strip(line) =~ @semicolon_comment_regex
-  end
-
   # returns true if the line contains only whitespace
   defp is_empty(line) do
     String.strip(line) == ""
-  end
-
-  # semicolons on a line define the start of a comment.
-  # this removes the semicolon and anything following it.
-  defp strip_inline_comments(line) do
-    line_list = String.split(line, ";")
-    List.first(line_list)
   end
 end
